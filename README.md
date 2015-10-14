@@ -19,6 +19,8 @@ Here are some of the documents from Apple that informed the style guide. If some
 * [Spacing](#spacing)
 * [Conditionals](#conditionals)
   * [Ternary Operator](#ternary-operator)
+* [Operators](#operators)
+* [Types](#types)
 * [Error handling](#error-handling)
 * [Methods](#methods)
 * [Variables](#variables)
@@ -37,6 +39,7 @@ Here are some of the documents from Apple that informed the style guide. If some
 * [Singletons](#singletons)
 * [Imports](#imports)
 * [Xcode Project](#xcode-project)
+* [Pragma](#pragma-mark-and-implementation-organization)
 
 ## Dot Notation Syntax
 
@@ -109,6 +112,51 @@ result = a > b ? x : y;
 result = a > b ? x = c > d ? c : d : y;
 ```
 
+### Switch
+
+```objective-c
+switch (something.state) {
+    case 0: {
+        // Something
+        break;
+    }
+    
+    case 1: {
+        // Something
+        break;
+    }
+    
+    case 2:
+    case 3: {
+        // Something
+        break;
+    }
+    
+    default: {
+        // Something
+        break;
+    }
+}
+```
+
+## Operators
+```objective-c
+NSString *foo = @"bar";
+NSInteger answer = 42;
+answer += 9;
+answer++;
+answer = 40 + 2;
+```
+
+The `++`, `--`, etc are preferred to be after the variable instead of before to be consistent with other operators. Operators separated should **always** be surrounded by spaces unless there is only one operand.
+
+## Types
+
+`NSInteger` and `NSUInteger` should be used instead of `int`, `long`, etc per Apple's best practices and 64-bit safety. `CGFloat` is preferred over `float` for the same reasons. This future proofs code for 64-bit platforms.
+
+All Apple types should be used over primitive ones. For example, if you are working with time intervals, use `NSTimeInterval` instead of `double` even though it is synonymous. This is considered best practice and makes for clearer code.
+
+
 ## Error Handling
 
 When methods return an error parameter by reference, switch on the returned value, not the error variable.
@@ -134,11 +182,25 @@ Some of Apple’s APIs write garbage values to the error parameter (if non-NULL)
 
 ## Methods
 
-In method signatures, there should be a space after the scope (`-` or `+` symbol). There should be a space between the method segments.
+There should **always** be a space between the `-` or `+` and the return type (`(void)` in this example). There should **never** be a space between the return type and the method name.
+
+There should **never** be a space before or after colons. If the parameter type is a pointer, there should **always** be a space between the class and the `*`.
+
+There should **always** be a space between the end of the method and the opening bracket. The opening bracket should **never** be on the following line.
+
+There should **always** be two new lines between methods. This matches some Xcode templates (although they change a lot) and increase readability.
 
 **For Example**:
+
 ```objc
-- (void)setExampleText:(NSString *)text image:(UIImage *)image;
+- (void)someMethod {
+    // Do stuff
+}
+
+
+- (NSString *)stringByReplacingOccurrencesOfString:(NSString *)target withString:(NSString *)replacement {
+    return nil;
+}
 ```
 
 ## Variables
@@ -469,6 +531,27 @@ Note: For modules use the [@import](http://clang.llvm.org/docs/Modules.html#usin
 #import "PWButton.h"
 #import "PWUserView.h"
 ```
+**Always** use `@class` whenever possible in header files instead of `#import` since it has a slight compile time performance boost.
+
+From the [Objective-C Programming Guide](http://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ObjectiveC/ObjC.pdf) (Page 38):
+
+> The @class directive minimizes the amount of code seen by the compiler and linker, and is therefore the simplest way to give a forward declaration of a class name. Being simple, it avoids potential problems that may come with importing files that import still other files. For example, if one class declares a statically typed instance variable of another class, and their two interface files import each other, neither class may compile correctly.
+
+### Header Prefix
+
+Adding frameworks that are used in the majority of a project to a header prefix is preferred. If these frameworks are in the header prefix, they should **never** be imported in source files in the project.
+
+For example, if a header prefix looks like the following:
+
+```objective-c
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+    #import <UIKit/UIKit.h>
+#endif
+```
+
+`#import <Foundation/Foundation.h>` should never occur in the project outside of the header prefix.
+
 
 ## Xcode project
 
@@ -476,15 +559,38 @@ The physical files should be kept in sync with the Xcode project files in order 
 
 When possible, always turn on “Treat Warnings as Errors” in the target’s Build Settings and enable as many [additional warnings](http://boredzo.org/blog/archives/2009-11-07/warnings) as possible. If you need to ignore a specific warning, use [Clang’s pragma feature](http://clang.llvm.org/docs/UsersManual.html#controlling-diagnostics-via-pragmas).
 
-# Other Objective-C Style Guides
+## Pragma Mark and Implementation Organization
 
-If ours doesn’t fit your tastes, have a look at some other style guides:
+An excerpt of a UIView:
 
-* [Google](http://google-styleguide.googlecode.com/svn/trunk/objcguide.xml)
-* [GitHub](https://github.com/github/objective-c-conventions)
-* [Adium](https://trac.adium.im/wiki/CodingStyle)
-* [Sam Soffes](https://gist.github.com/soffes/812796)
-* [CocoaDevCentral](http://cocoadevcentral.com/articles/000082.php)
-* [Luke Redpath](http://lukeredpath.co.uk/blog/2011/06/28/my-objective-c-style-guide/)
-* [Marcus Zarra](http://www.cimgf.com/zds-code-style-guide/)
-* [Wikimedia](https://www.mediawiki.org/wiki/Wikimedia_Apps/Team/iOS/ObjectiveCStyleGuide)
+```objective-c
+#pragma mark - NSObject
+
+- (void)dealloc {
+    // Release
+    [super dealloc];
+}
+
+
+#pragma mark - UIView
+
+- (id)layoutSubviews {
+    // Stuff
+}
+
+
+- (void)drawRect:(CGRect)rect {
+    // Drawing code
+}
+```
+
+Methods should be grouped by inheritance. In the above example, if some `UIResponder` methods were used, they should go between the `NSObject` and `UIView` methods since that's where they fall in the inheritance chain.
+
+
+## Contributing to this project
+If you have change or update request, feel free to help out by sending pull requests or by [creating new issues](https://github.com/gmorales-phunware/PW-Objective-C-Style-Guide/issues/new). 
+
+Please take a moment to review the guidelines:
+* [Bug reports](https://github.com/gmorales-phunware/contributing-guidelines/blob/master/CONTRIBUTING.md#bugs)
+* [Feature requests](https://github.com/gmorales-phunware/contributing-guidelines/blob/master/CONTRIBUTING.md#features)
+* [Pull requests](https://github.com/gmorales-phunware/contributing-guidelines/blob/master/CONTRIBUTING.md#pull-requests)
